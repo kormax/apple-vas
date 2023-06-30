@@ -79,7 +79,7 @@ Response data (TLV):
 ```
 6f[1d]:                 # File Control Information Template
   50[08]:               # Application Label   
-   4170706c65506179     # ASCII form of "OSE.VAS.01"
+   4170706c65506179     # ASCII form of "ApplePay"
   9f21[02]:             # VAS version
    0100                 # Major version 1, minor version 0
   9f24[04]:             # Nonce
@@ -117,7 +117,7 @@ Cryptogram Information Data TLV tag contains following concatenated data:
 
 - This document is based on reverse-engineering efforts done without any access to original protocol specification. Consider all information provided here as an educated guess that is not officially cofirmed;
 - If you find any mistakes/typos or have extra information to add, feel free to raise an issue or create a pull request;
-- Information provided here is intended for educational and personal purposes only. I assume no responsibility for you using the document for any other purposes. For use in commercial applications you have to contact Apple and pass all required certifications.
+- Information provided here is intended for educational and personal use only. I assume no responsibility for you using the document for any other purposes. For use in commercial applications you have to contact Apple through official channels and pass all required certifications.
 
 
 # References
@@ -125,10 +125,10 @@ Cryptogram Information Data TLV tag contains following concatenated data:
 * Resources that helped with research:
   - [IOS16 Runtime Headers](https://developer.limneos.net/?ios=16.3);
   - [Apple Developer Documentation](https://developer.apple.com/documentation/);
-  - [Contactless passes in Apple Pay](https://support.apple.com/en-gb/guide/security/secbd55491ad/web);
+  - [Contactless passes in Apple Pay](https://support.apple.com/en-gb/guide/security/secbd55491ad/web) [(Archive)](https://web.archive.org/web/20230126091244/https://support.apple.com/en-gb/guide/security/secbd55491ad/web);
   - [EMV tag search](https://emvlab.org/emvtags/);
-  - [Flomio Apple VAS](https://flomio.com/forums/topic/apple-vas/) - VAS available only to licensed partners;
-  - [VTAP Apple VAS readers](https://www.vtapnfc.com/apple-vas-readers/) - Use of VAS requires ECP to be implemented in a reader.
+  - [Flomio Apple VAS](https://flomio.com/forums/topic/apple-vas/) [(Archive)](https://web.archive.org/web/20230601012002/https://flomio.com/forums/topic/apple-vas/) - VAS available only to licensed partners;
+  - [VTAP Apple VAS readers](https://www.vtapnfc.com/apple-vas-readers/) [(Archive)](https://web.archive.org/web/20230401003220/https://www.vtapnfc.com/apple-vas-readers/) - Use of VAS requires ECP to be implemented in a reader.
   - Device brochures:  
     - [VTAP-100](https://www.vtapnfc.com/downloads/100/VTAP100-OEM_Datasheet.pdf);
     - [VTAP-50](https://www.vtapnfc.com/downloads/50/VTAP50-OEM_Datasheet.pdf);
