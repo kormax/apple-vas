@@ -9,7 +9,9 @@ Apart from reading passes, this protocol also allows reader to send a signup URL
 
 Pass data is transmitted in protected form encrypted using AES-GCM. Shared key is derived via ECDH exchange with a KDF and is single use only.
 
-Depending on opreation mode, one or multiple passes can be read in a single tap.
+Depending on opreation mode, one or multiple passes can be read in a single tap.  
+
+For correct operation all readers that implement VAS should also have properly configured [ECP](https://github.com/kormax/apple-enhanced-contactless-polling). Otherwise some UX/UI-related features won't work as expected.
 
 Version 1 was current at the time of writing.
 
