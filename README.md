@@ -7,7 +7,7 @@ Apple VAS (Value-added services) is a proprietary NFC protocol that can be used 
 
 Apart from reading passes, this protocol also allows reader to send a signup URL to the device, causing a signup link notification to appear on devices that do not have an appropriate pass downloaded.
 
-Pass data is transmitted in encrypted form. Shared key is derived via ECDH exchange and is single use only.
+Pass data is transmitted in protected form encrypted using AES-GCM. Shared key is derived via ECDH exchange with a KDF and is single use only.
 
 Depending on opreation mode, one or multiple passes can be read in a single tap.
 
@@ -104,9 +104,14 @@ Response data (TLV):
    e9f3d533f506e29b4ed31eaa9cfa
 ```
 
-Cryptogram Information Data TLV tag contains concatenated public key fingerprint and encrypted data that contains the device's timestamp and pass data itself.
+Cryptogram Information Data TLV tag contains following concatenated data:
+   - Reader public key fingerprint: [0:4);
+   - Device public key: [4:36);
+   - Encrypted data [36:] containing:
+     * Device timestamp [0:4);
+     * Pass data [4:].
 
-**Detailed VAS response breakdown coming soon ©**
+**More detailed VAS response breakdown coming soon ©**
 
 # Notes
 
