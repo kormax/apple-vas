@@ -16,15 +16,16 @@ For correct operation all readers that implement VAS should also have properly c
 Version 1 was current at the time of writing.
 
 
-# Application identifiers
+# Application identifier
 
 
-VAS can be activated using following application id (AID):
+VAS can be selected using following application id (AID):  
+   ```
+   4f53452e5641532e3031
+   ```
+AID value is a HEX representation of ASCII string "OSE.VAS.01".  
 
-1. VAS AID (hex of encoded 'OSE.VAS.01'), also used by Google Smart Tap.  
-    ```
-    4f53452e5641532e3031
-    ```
+This AID is also used by [Google Smart Tap](https://github.com/kormax/google-smart-tap):
 
 The ususal implementation for most readers is to select OSE.VAS.01 in order to detect what wallet provider is available on device (stored in TLV tag 50), if "ApplePay" is the value, then we have a device with Apple Wallet.
 
@@ -46,7 +47,7 @@ Following modes are available:
 3. VAS only:  
    Used when you only need to read a pass. In this mode if a phone is brought into the field before auth it will present the needed pass on the screen for authentication. **This mode allows to read only one pass at a time**. If you preauthenticate a payment card, a needed pass will jump in place of a payment card when you bring the device to the reader.  
    <img src="./assets/VAS.MODE.VASONLY.BEFORE.AUTH.webp" alt="![VAS and payment]" width=200px>
-4. Payment only:
+4. Payment only:  
    Serves as anti-CATHAY.
 
 ## Protocol modes
