@@ -191,6 +191,11 @@ Fingerprint is used to find the corresponding private key for decryption, as som
 
 Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library.  As shared info might be considered private information of a company, I won't share how to compute it, but as of now you can find this information on the web, look into notes section for more info. 
 ```
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.x963kdf import X963KDF
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import load_der_public_key
+
 ECSDA_PUBLIC_KEY_ASN_HEADER = bytearray.fromhex(
    "3039301306072a8648ce3d020106082a8648ce3d030107032200"
 )
