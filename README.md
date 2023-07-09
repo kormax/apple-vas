@@ -314,7 +314,7 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
 # References
 
 * Resources that helped with research:
-  - Generating Wallet passes:
+  - Generating Wallet passes for testing and analysis:
     - [PassKit](https://pub1.pskt.io/c/gn1v07) - the easiest way of getting demo passes for both Apple VAS and Google Smart Tap, to get an Apple Wallet pass you have to open this link with an Apple-related (IOS/Mac) user agent;
     - [SpringCard](https://springpass.springcard.com) - requires email, can be used for extra testing;
   - General:
@@ -326,7 +326,7 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
   - ECP Requirement info:
     - [Flomio Apple VAS](https://flomio.com/forums/topic/apple-vas/) [(Archive)](https://web.archive.org/web/20230601012002/https://flomio.com/forums/topic/apple-vas/) - VAS available only to licensed partners;
     - [VTAP Apple VAS readers](https://www.vtapnfc.com/apple-vas-readers/) [(Archive)](https://web.archive.org/web/20230401003220/https://www.vtapnfc.com/apple-vas-readers/) - Use of VAS requires ECP to be implemented in a reader.
-  - Device Documentation:
+  - Device documentation:
     - [Springcard - Apple VAS Template](https://docs.springcard.com/books/SpringCore/Smart_Reader_Operation/NFC_Templates/Apple_VAS) [(Archive)](https://web.archive.org/web/20230709162304/https://docs.springcard.com/books/SpringCore/Smart_Reader_Operation/NFC_Templates/Apple_VAS);
     - [Configuring Vendi for Apple VAS](https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Configuring%20Vendi%20for%20AppleVas.pdf?api=v2) [(Archive)](https://web.archive.org/web/20230709161922/https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Configuring%20Vendi%20for%20AppleVas.pdf?api=v2);
     - [Apple VAS in ViVOPay Devices](https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Apple%20VAS%20in%20ViVOpay%20Devices%20User%20Guide.pdf?api=v2) [(Archive)](https://web.archive.org/web/20230630105151/https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Apple%20VAS%20in%20ViVOpay%20Devices%20User%20Guide.pdf?api=v2);
