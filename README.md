@@ -136,14 +136,14 @@ Mentioned in some public configuration PDFs, does not impact usage
 
 | 07  | 06  | 05  | 04  | 03  | 02  | 01  | 00  | Notes                       |
 | --- | --- | --- | --- | --- | --- | --- | --- | --------------------------- |
-| 01  |     |     |     |     |     |     |     | VAS is supported            |
-| 00  |     |     |     |     |     |     |     | Vas is unsupported          |
-|     | 01  |     |     |     |     |     |     | Authentication required     |
-|     | 00  |     |     |     |     |     |     | Authentication not required |
-|     |     | XX  | XX  | XX  | XX  |     |     | RFU                         |
-|     |     |     |     |     |     | XX  | XX  | Terminal type               |
-|     |     |     |     |     |     | 00  | 00  | Payment                     |
-|     |     |     |     |     |     | 00  | 01  | Transit                     |
+| 1   |     |     |     |     |     |     |     | VAS is supported            |
+| 0   |     |     |     |     |     |     |     | Vas is unsupported          |
+|     | 1   |     |     |     |     |     |     | Authentication required     |
+|     | 0   |     |     |     |     |     |     | Authentication not required |
+|     |     | X   | X   | X   | X   |     |     | RFU                         |
+|     |     |     |     |     |     | X   | X   | Terminal type               |
+|     |     |     |     |     |     | 0   | 0   | Payment                     |
+|     |     |     |     |     |     | 0   | 1   | Transit                     |
 
 
 Byte 2 - RFU
@@ -152,16 +152,16 @@ Byte 2 - RFU
 
 Important for protocol operation
 
-| 07  | 06  | 05  | 04  | 03  | 02  | 01  | 00  | Notes                                  |
-| --- | --- | --- | --- | --- | --- | --- | --- | -------------------------------------- |
-| 00  |     |     |     |     |     |     |     | No passes will be requested after that |
-| 01  |     |     |     |     |     |     |     | More passes will be requested later    |
-|     | XX  | XX  | XX  | XX  | XX  |     |     | RFU                                    |
-|     |     |     |     |     |     | XX  | XX  | VAS mode (like in ECP)                 |
-|     |     |     |     |     |     | 00  | 00  | VAS or payment                         |
-|     |     |     |     |     |     | 00  | 01  | VAS and payment                        |
-|     |     |     |     |     |     | 01  | 00  | VAS only                               |
-|     |     |     |     |     |     | 01  | 01  | Payment only                           |
+| 07  | 06  | 05  | 04  | 03  | 02  | 01  | 00  | Notes                                                    |
+| --- | --- | --- | --- | --- | --- | --- | --- | -------------------------------------------------------- |
+| 1   |     |     |     |     |     |     |     | More passes will be requested in this reading session    |
+| 0   |     |     |     |     |     |     |     | No more passes will be requested in this reading session |
+|     | X   | X   | X   | X   | X   |     |     | RFU                                                      |
+|     |     |     |     |     |     | X   | X   | VAS mode (like in ECP)                                   |
+|     |     |     |     |     |     | 0   | 0   | VAS or payment                                           |
+|     |     |     |     |     |     | 0   | 1   | VAS and payment                                          |
+|     |     |     |     |     |     | 1   | 0   | VAS only                                                 |
+|     |     |     |     |     |     | 1   | 1   | Payment only                                             |
 
 
 Command TLV data example:
@@ -198,6 +198,7 @@ Status words:
    | `6a` | `83` | Pass not selected on a screen or unavailable                                                  |
    | `62` | `87` | Device not unlocked (Apple Wallet will open, pass will appear on a screen for authentication) |
 
+Any other status word means that a command payload was built incorrectly, or that an applet was not yet selected.
 
 Response data example:
    - Payload:
@@ -225,11 +226,13 @@ Cryptogram Information Data TLV tag contains following concatenated data:
      * Pass data [4:] (n bytes).
 
 
-Pass public key fingerprint can be calculated by doing a SHA256 over the x component of a public key and taking the first 4 bytes. x is used because for ECDH y value does not matter. For readers
+Pass public key fingerprint can be calculated by doing a SHA256 over the x component of a public key and taking the first 4 bytes. x is used because for ECDH y value does not matter. If your library requires it, you can provide any sign byte (`02`, `03`) to the EC key.
 fingerprint is used to find the corresponding private key for decryption, as some passes from the same issuer might have a different public key than the others.
 
-Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library.  As shared info might be considered private information of a company, I won't share how to compute it, but as of now you can find this information on the web, look into notes section for more info. 
+Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library.  As shared info might be considered private information of a company, I won't share how to compute it, but as of now you can find this information on the web (look into notes, references sections for more info). 
 ```
+import hashlib 
+
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.x963kdf import X963KDF
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -238,6 +241,13 @@ from cryptography.hazmat.primitives.serialization import load_der_public_key
 ECSDA_PUBLIC_KEY_ASN_HEADER = bytearray.fromhex(
    "3039301306072a8648ce3d020106082a8648ce3d030107032200"
 )
+
+def generate_shared_info(pass_identifier: str):
+    return bytes([
+        *"ASN 1 RELATIVE-OID".encode("ascii"),
+        *"REDACTED REDACTED REDACTED".encode("ascii"),
+        *hashlib.sha256(pass_identifier.encode("ascii")).digest()
+    ])
 
 def decrypt_vas_data(cryptogram: bytearray, pass_identifier: str, keys: Collection["PrivateKey"]):
    device_key_id = cryptogram[:4]
@@ -342,11 +352,12 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
 
 # Personal notes
 
-- Protocol lacks nonces, therefore there is no way for a reader to verify that the response provided was actually generated during this communication session.  
-  An attacker, provided that they have temporary access to victim's device, can farm cryptograms in advance after changing devie time to a particular date. After that, they can use farmed cryptograms at a particular time. Although I would argue that physical access to device is a game over anyway, as you can extract a pass file or even share it, so security might not have been a first priority.
+- Protocol lacks nonces, therefore there is no way for a reader to truly verify that the response provided was actually generated during this communication session.  
+  An attacker, provided that they have temporary access to victim's device, can farm cryptograms in advance after changing devie time to a particular date. After that, they can use farmed cryptograms at a right moment. 
 - Timestamp-based verification is a tale about compromises. You can reduce allowed timestamp diff between a reader and phone, but this could cause false negatives.
   On the other hand, making a diff larger or non-existant makes the possible attack easier. There is a big chance that some real certified readers don't verify the timestamp at all to reduce false positives;
 - Google Smart Tap seems to have better security. It uses a static key for reader authentication, a secure channel is established afterwards using a per-session unique ECDH keys, plus the request is nonced.
+- One could argue that physical access to device is a game over anyway, as you can extract a pass file or even share it, so security might not have been a first priority.
 - Due to beforementioned reasons we can assume that encryption was also added as a way of preventing the reverse-engineering and/or as an afterthought (which didn't help in the end).
 
 
