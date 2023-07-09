@@ -308,7 +308,7 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
 - Timestamp-based verification is a tale about compromises. You can reduce allowed timestamp diff between a reader and phone, but this could cause false negatives.
   On the other hand, making a diff larger or non-existant makes the possible attack easier. There is a big chance that some real certified readers don't verify the timestamp at all to reduce false positives;
 - Google Smart Tap seems to have better security. It uses a static key for reader authentication, a secure channel is established afterwards using a per-session unique ECDH keys, plus the request is nonced.
-- Due to beforementioned reasons we can assume that encryption was also added as a way of preventing the reverse-engineering as an afterthought (which didn't help in the end).
+- Due to beforementioned reasons we can assume that encryption was also added as a way of preventing the reverse-engineering and/or as an afterthought (which didn't help in the end).
 
 
 # References
