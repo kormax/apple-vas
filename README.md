@@ -293,12 +293,17 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
 - This document is based on reverse-engineering efforts done without any access to original protocol specification. Consider all information provided here as an educated guess that is not officially cofirmed;
 - If you find any mistakes/typos or have extra information to add, feel free to raise an issue or create a pull request;
 - Information provided here is intended for educational and personal use only. I assume no responsibility for you using the document for any other purposes. For use in commercial applications you have to contact Apple through official channels and pass all required certifications.
-- After the creation of this document a more in-depth reverse-engineered description of Apple VAS has been published by @gm3197. I am in no shape or form affiliated with that person. If you are interested, you can look at their GitHub profile, plus there is a fully complete implementation made by that person was added into a [Proxmark3](https://github.com/RfidResearchGroup/proxmark3) repository.
+- After the creation of this document a more in-depth reverse-engineered description of Apple VAS has been published by [@gm3197](https://github.com/gm3197). I am in no shape or form affiliated with that person. If you are interested, you can look at their GitHub profile, plus there is a fully complete implementation made by that person was added into a [Proxmark3](https://github.com/RfidResearchGroup/proxmark3) repository.
 
 
 # Personal notes
 
-- Even though Apple VAS protocol uses encryption, lack of nonces in data request makes this protocol unsecure, as an attacker can change the device time and farm pass cryptograms in advance, provided they have an access to device, later using them at an approximate time near a real reader. This could be a reason why express mode is unavailable for passes, as it would make the problem even bigger.
+- During protocol analysis, following vulnerabilities have been found:
+  - Protocol lacks nonces, therefore there is no way for a reader to verify that the response provided was actually generated during this communication.  
+    An attacker, provided that they have temporary access to victim's device, can farm cryptograms in advance after changing devie time to a particular date. After that, they can use farmed cryptograms at a particular time.
+  - Timestamp-based verification is a tale about compromises. You can reduce allowed timestamp diff between a reader and phone, but this could cause false negatives.  
+    On the other hand, making a diff larger or non-existant makes the possible attack easier. There is a big chance that some readers don't verify the timestamp at all.
+  - Google Smart Tap seems to have better security. It uses a static key for reader authentication, a secure channel is established afterwards using a per-session unique ECDH keys, plus the request is nonced.
 - Due to beforementioned reason we can assume that encryption was also added as a way of preventing the reverse-engineering as an afterthought (which didn't help in the end).
 
 
