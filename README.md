@@ -59,7 +59,7 @@ VAS also has a protocol MODE flag.
 2. FULL:  
    Value `01`. Can be used for both pass redemption and URL signup advertisment.
 
-# Commands
+# Command overview
 
 As of version 1 following commands are available:
 
@@ -71,40 +71,58 @@ As of version 1 following commands are available:
 
 # Command and response data format
 
-VAS uses TLV to encode parameters inside request and response data.
-
 ## Select VAS
 
-Request data:  
-`4f53452e5641532e3031`
+### Request:
 
-Response data (TLV):  
-```
-6f[1d]:                 # File Control Information Template
-  50[08]:               # Application Label   
-   4170706c65506179     # ASCII form of "ApplePay"
-  9f21[02]:             # VAS version
-   0100                 # Major version 1, minor version 0
-  9f24[04]:             # Nonce
-   c05d48d0             # This number is random every time
-  9f23[04]:             # Extra information
-   0000001e             # Meaning of this value is unknown
-```
+   | CLA | INS | P1  | P2  | DATA                   | LE  | 
+   | --- | --- | --- | --- | ---------------------- | --- |
+   | 00  | A4  | 04  | 00  | `4f53452e5641532e3031` | 00  | 
+
+   Data contains an ASCII encoded form of "OSE.VAS.01" string;
+
+### Response
+   
+   | SW1 | SW2 | DATA                                                             |
+   | --- | --- | ---------------------------------------------------------------- |
+   | 90  | 00  | `6f1d50084170706c655061799f210201009f2404c05d48d09f23040000001e` |
+
+
+   Response data example:  
+   - Payload:
+     - `6f1d50084170706c655061799f210201009f2404c05d48d09f23040000001e`
+   - TLV decoded:
+      ```
+      6f[1d]:                 # File Control Information Template
+         50[08]:               # Application Label   
+            4170706c65506179     # ASCII form of "ApplePay"
+         9f21[02]:             # VAS version
+            0100                 # Major version 1, minor version 0
+         9f24[04]:             # Nonce
+            c05d48d0             # This number is random every time, not used
+         9f23[04]:             # Extra information
+            0000001e             # Meaning of this value is unknown
+      ```
+
 
 ## Get data
 
-### Request data (TLV):
+### Request:
 
-Request data is formed from an array of concatenated TLVs:
+   | CLA | INS | P1  | P2   | DATA | LE  |
+   | --- | --- | --- | ---- | ---- | --- |
+   | 80  | CA  | 01  | MODE | *    | 00  |
 
-| Name                | Tag    | Length   | Example                                                            | Notes                                                                                                                                              |
-| ------------------- | ------ | -------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Protocol version    | `9f22` | `02`     | `0100`                                                             | Always `0100`                                                                                                                                      |
-| SHA256 of pass id   | `9f25` | `32`     | `03b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a3146` | SHA of pass type identifier, such as `pass.com.passkit.pksamples.nfcdemo`                                                                          |
-| Capabilities mask   | `9f26` | `04`     | `00800002`                                                         | More info below                                                                                                                                    |
-| Merchant signup URL | `9f29` | Variable | `68747470733a2f2f6170706c652e636f6d`                               | URL pointing to a HTTPS signup json signed by pass certificate                                                                                     |
-| Filter              | `9f2b` | `05`     | `0100000000`                                                       | Meaning unknown, mentioned in public configuration PDFs (look at References section). Values other than provided in example make pass reading fail |
-|                     |        |          |                                                                    |                                                                                                                                                    |
+   P2 flag values were described in "Protocol Modes" section;
+
+   Request data:
+   | Name                | Tag    | Length   | Example                                                            | Notes                                                                                                                                              |
+   | ------------------- | ------ | -------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Protocol version    | `9f22` | `02`     | `0100`                                                             | Always `0100`                                                                                                                                      |
+   | SHA256 of pass id   | `9f25` | `32`     | `03b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a3146` | SHA of pass type identifier, such as `pass.com.passkit.pksamples.nfcdemo`                                                                          |
+   | Capabilities mask   | `9f26` | `04`     | `00800002`                                                         | More info below                                                                                                                                    |
+   | Merchant signup URL | `9f29` | Variable | `68747470733a2f2f6170706c652e636f6d`                               | URL pointing to a HTTPS signup json signed by pass certificate                                                                                     |
+   | Filter              | `9f2b` | `05`     | `0100000000`                                                       | Meaning unknown, mentioned in public configuration PDFs (look at References section). Values other than provided in example make pass reading fail |
 
 ### Capabilities mask
 
@@ -146,34 +164,55 @@ Important for protocol operation
 |     |     |     |     |     |     | 01  | 01  | Payment only                           |
 
 
-TLV data example:
-```
-9f22[02]:
-  0100
-9f25[20]:             
-   03b57cdb3eca
-   0984ba9abdc2
-   fb45d86626d8
-   7b39d33c5c6d
-   bbc313a6347a
-   3146
-9f26[04]:
-   00800002
-9f2b[05]:
-   0100000000
-9f29[11]:               
-   68747470733a2f2f6170706c652e636f6d
-```
+Command TLV data example:
+   - TLV decoded: 
+      ```
+      9f22[02]:
+      0100
+      9f25[20]:             
+         03b57cdb3eca
+         0984ba9abdc2
+         fb45d86626d8
+         7b39d33c5c6d
+         bbc313a6347a
+         3146
+      9f26[04]:
+         00800002
+      9f2b[05]:
+         0100000000
+      9f29[11]:               
+         68747470733a2f2f6170706c652e636f6d
+      ```
 
-Response data (TLV):
-```
-70[54]:                 # EMV Proprietary Template
-  9f2a[00]              # Unknown
-  9f27[4e]:             # Cryptogram Information Data (VAS response)
-   beef7375094afa4824addb8abf0a59f4c5b88f7b33cd803666cdf358dc8aa2ec  
-   ea863673b7e92b8f39bc744233dda87e53f2ae346eb43415e7b20a50aa41e02d  
-   e9f3d533f506e29b4ed31eaa9cfa
-```
+
+### Response:
+
+   | SW1 | SW2 | DATA                                                                                                                                                                           |
+   | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | XX  | XX  | `70549f2a009f274ebeef7375094afa4824addb8abf0a59f4c5b88f7b33cd803666cdf358dc8aa2ecea863673b7e92b8f39bc744233dda87e53f2ae346eb43415e7b20a50aa41e02de9f3d533f506e29b4ed31eaa9cfa` |
+
+Status words:
+   | SW1  | SW2  | Notes                                                                                         |
+   | ---- | ---- | --------------------------------------------------------------------------------------------- |
+   | `90` | `00` | Pass data returned (full VAS) or URL was accepted (URL only)                                  |
+   | `6a` | `83` | Pass not selected on a screen or unavailable                                                  |
+   | `62` | `87` | Device not unlocked (Apple Wallet will open, pass will appear on a screen for authentication) |
+
+
+Response data example:
+   - Payload:
+     - `70549f2a009f274ebeef7375094afa4824addb8abf0a59f4c5b88f7b33cd803666cdf358dc8aa2ecea863673b7e92b8f39bc744233dda87e53f2ae346eb43415e7b20a50aa41e02de9f3d533f506e29b4ed31eaa9cfa`
+   - TLV decoded: 
+      ```
+      70[54]:               # EMV Proprietary Template
+         9f2a[00]              # Unknown
+         9f27[4e]:             # Cryptogram Information Data (VAS response)
+            beef7375094afa4824addb8abf0a59f4c5b88f7b33cd803666cdf358dc8aa2ec  
+            ea863673b7e92b8f39bc744233dda87e53f2ae346eb43415e7b20a50aa41e02d  
+            e9f3d533f506e29b4ed31eaa9cfa
+      ```
+
+
 
 <sub>[ and ] depict inclusive array indices, ( and ) depict exclusive indices</sub>
 
@@ -186,8 +225,8 @@ Cryptogram Information Data TLV tag contains following concatenated data:
      * Pass data [4:] (n bytes).
 
 
-Pass public key fingerprint can be calculated by doing a SHA256 over the x component of a public key and taking the first 4 bytes. x is used because for ECDH y value does not matter. For libraries
-Fingerprint is used to find the corresponding private key for decryption, as some passes might have a different public key than the others.
+Pass public key fingerprint can be calculated by doing a SHA256 over the x component of a public key and taking the first 4 bytes. x is used because for ECDH y value does not matter. For readers
+fingerprint is used to find the corresponding private key for decryption, as some passes from the same issuer might have a different public key than the others.
 
 Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library.  As shared info might be considered private information of a company, I won't share how to compute it, but as of now you can find this information on the web, look into notes section for more info. 
 ```
@@ -298,7 +337,7 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
 - This document is based on reverse-engineering efforts done without any access to original protocol specification. Consider all information provided here as an educated guess that is not officially cofirmed;
 - If you find any mistakes/typos or have extra information to add, feel free to raise an issue or create a pull request;
 - Information provided here is intended for educational and personal use only. I assume no responsibility for you using the document for any other purposes. For use in commercial applications you have to contact Apple through official channels and pass all required certifications.
-- After the creation of this document a more in-depth reverse-engineered description of Apple VAS has been published by [@gm3197](https://github.com/gm3197). I am in no shape or form affiliated with that person. If you are interested, you can look at their GitHub profile, plus there is a fully complete implementation made by that person was added into a [Proxmark3](https://github.com/RfidResearchGroup/proxmark3) repository.
+- After the creation of this document a more in-depth reverse-engineered description of Apple VAS [has been published](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350) by [@gm3197](https://github.com/gm3197). I am in no shape or form affiliated with that person. If you are interested, you can look at their GitHub profile, plus there is a fully complete implementation made by that person was added into a [Proxmark3](https://github.com/RfidResearchGroup/proxmark3) repository. This repository will still be maintained as some information here is unique, plus updates may be in order if new information is found.
 
 
 # Personal notes
