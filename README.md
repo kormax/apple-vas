@@ -39,15 +39,15 @@ Apple VAS has multiple operation modes. Mode setting affects:
 * If you are allowed to read multiple different passes in one tap.
   
 Following modes are available:
-1. VAS or payment:  
+1. VAS or payment `00`:  
    Operates the same as VAS and payment (Info below). Can also be called VAS over payment, meaning that a reader tries to read a loyalty pass, if it has enough balance it ends the transaction.  Otherwise it tries to charge the selected payment card.
-2. VAS and payment:  
+2. VAS and payment `01`:  
    Also called single tap mode. In this mode reader should select a VAS applet, read loyatly info, and after that select a payment applet and finish a transaction. **This mode supports reading multiple different passes in a single tap**, although UI will only tell about the first one. In this mode bringing the device to the field will display a default payment card, after auth it will also display that "Pass X will be also used" under the card.  
    <img src="./assets/VAS.MODE.VASANDPAY.webp" alt="![VAS and payment]" width=200px>
-3. VAS only:  
+3. VAS only `02`:  
    Used when you only need to read a pass. In this mode if a phone is brought into the field before auth it will present the needed pass on the screen for authentication. **This mode allows to read only one pass at a time**. If you preauthenticate a payment card, a needed pass will jump in place of a payment card when you bring the device to the reader.  
    <img src="./assets/VAS.MODE.VASONLY.BEFORE.AUTH.webp" alt="![VAS and payment]" width=200px>
-4. Payment only:  
+4. Payment only `03`:  
    Serves as anti-CATHAY.
 
 ## Protocol modes
@@ -57,7 +57,7 @@ VAS also has a protocol MODE flag.
 1. URL:  
    Value `00`. In this mode the reader works as a signup terminal. Tapping a device to it will display a sign-up notification on the screen.
 2. FULL:  
-   Value `  01`. Can be used for both pass redemption and URL signup advertisment.
+   Value `01`. Can be used for both pass redemption and URL signup advertisment.
 
 # Commands
 
@@ -97,13 +97,14 @@ Response data (TLV):
 
 Request data is formed from an array of concatenated TLVs:
 
-| Name                | Tag    | Length   | Example                                                            | Notes                                                                                                                                   |
-| ------------------- | ------ | -------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Protocol version    | `9f22` | `02`     | `0100`                                                             | Always `0100`                                                                                                                           |
-| SHA256 of pass id   | `9f25` | `32`     | `03b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a3146` | SHA of pass type identifier, such as `pass.com.passkit.pksamples.nfcdemo`                                                               |
-| Capabilities mask   | `9f26` | `04`     | `00800002`                                                         | More info below                                                                                                                         |
-| Merchant signup URL | `9f29` | Variable | `68747470733a2f2f6170706c652e636f6d`                               | URL pointing to a signup json signed by pass certificate                                                                                |
-| Filter              | `9f2b` | `05`     | `0100000000`                                                       | Meaning unknown, mentioned in public configuration PDFs (in References section). Values other than provided in examples make pass reading fail |
+| Name                | Tag    | Length   | Example                                                            | Notes                                                                                                                                              |
+| ------------------- | ------ | -------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Protocol version    | `9f22` | `02`     | `0100`                                                             | Always `0100`                                                                                                                                      |
+| SHA256 of pass id   | `9f25` | `32`     | `03b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a3146` | SHA of pass type identifier, such as `pass.com.passkit.pksamples.nfcdemo`                                                                          |
+| Capabilities mask   | `9f26` | `04`     | `00800002`                                                         | More info below                                                                                                                                    |
+| Merchant signup URL | `9f29` | Variable | `68747470733a2f2f6170706c652e636f6d`                               | URL pointing to a HTTPS signup json signed by pass certificate                                                                                     |
+| Filter              | `9f2b` | `05`     | `0100000000`                                                       | Meaning unknown, mentioned in public configuration PDFs (look at References section). Values other than provided in example make pass reading fail |
+|                     |        |          |                                                                    |                                                                                                                                                    |
 
 ### Capabilities mask
 
@@ -190,46 +191,50 @@ Fingerprint is used to find the corresponding private key for decryption, as som
 
 Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library.  As shared info might be considered private information of a company, I won't share how to compute it, but as of now you can find this information on the web, look into notes section for more info. 
 ```
-def decrypt_vas_data(cryptogram: bytearray, pass_identifier: str, keys: Collection[PrivateKey]):
-    device_key_id = cryptogram[:4]
-    device_public_key_body = cryptogram[4: 32 + 4]
-    device_encrypted_data = cryptogram[36:]
+ECSDA_PUBLIC_KEY_ASN_HEADER = bytearray.fromhex(
+   "3039301306072a8648ce3d020106082a8648ce3d030107032200"
+)
 
-    for key in keys:
-        reader_public_key = key.public_key()
-        reader_key_id = bytearray(hashlib.sha256(reader_public_key.public_numbers().x.to_bytes(32, "big")).digest()[:4])
-        if reader_key_id == device_key_id:
-            reader_private_key = key
-            break
-    else:
-        raise Exception("No matching private key was found for this pass")
+def decrypt_vas_data(cryptogram: bytearray, pass_identifier: str, keys: Collection["PrivateKey"]):
+   device_key_id = cryptogram[:4]
+   device_public_key_body = cryptogram[4: 32 + 4]
+   device_encrypted_data = cryptogram[36:]
 
-    # Sign does not matter for ECDH
-    for sign in (0x02, 0x03):
-        try:
-            device_public_key = load_der_public_key(
-                ECSDA_PUBLIC_KEY_ASN_HEADER + bytearray([sign]) + device_public_key_body
-            )
+   for key in keys:
+      reader_public_key = key.public_key()
+      reader_key_id = bytearray(hashlib.sha256(reader_public_key.public_numbers().x.to_bytes(32, "big")).digest()[:4])
+      if reader_key_id == device_key_id:
+         reader_private_key = key
+         break
+   else:
+      raise Exception("No matching private key was found for this pass")
 
-            shared_key = reader_private_key.exchange(ec.ECDH(), device_public_key)
-            shared_info = generate_shared_info(pass_identifier)
-            print(f"SHARED INFO {shared_info.hex()} {len(shared_info)}")
-            derived_key = X963KDF(
-                algorithm=hashes.SHA256(),
-                length=32,
-                sharedinfo=shared_info,
-            ).derive(shared_key)
+   # Sign does not matter for ECDH
+   for sign in (0x02, 0x03):
+      try:
+         device_public_key = load_der_public_key(
+               ECSDA_PUBLIC_KEY_ASN_HEADER + bytearray([sign]) + device_public_key_body
+         )
 
-            device_data = AESGCM(derived_key).decrypt(b'\x00' * 16, bytes(device_encrypted_data), b'')
+         shared_key = reader_private_key.exchange(ec.ECDH(), device_public_key)
+         shared_info = generate_shared_info(pass_identifier)
+         print(f"SHARED INFO {shared_info.hex()} {len(shared_info)}")
+         derived_key = X963KDF(
+               algorithm=hashes.SHA256(),
+               length=32,
+               sharedinfo=shared_info,
+         ).derive(shared_key)
 
-            timestamp = datetime(year=2001, month=1, day=1) + timedelta(seconds=int.from_bytes(device_data[:4], "big"))
-            payload = device_data[4:].decode("utf-8")
-            print(f"{timestamp} {payload}")
-            return timestamp, payload
-        except Exception as e:
-            pass
-    else:
-        raise Exception("Could not decrypt data")
+         device_data = AESGCM(derived_key).decrypt(b'\x00' * 16, bytes(device_encrypted_data), b'')
+
+         timestamp = datetime(year=2001, month=1, day=1) + timedelta(seconds=int.from_bytes(device_data[:4], "big"))
+         payload = device_data[4:].decode("utf-8")
+         print(f"{timestamp} {payload}")
+         return timestamp, payload
+      except Exception as e:
+         pass
+   else:
+      raise Exception("Could not decrypt data")
 ```
 
 # Notes
