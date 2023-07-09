@@ -298,13 +298,12 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
 
 # Personal notes
 
-- During protocol analysis, following vulnerabilities have been found:
-  - Protocol lacks nonces, therefore there is no way for a reader to verify that the response provided was actually generated during this communication session.  
-    An attacker, provided that they have temporary access to victim's device, can farm cryptograms in advance after changing devie time to a particular date. After that, they can use farmed cryptograms at a particular time. Although an access to device could be considered an unbeatable problem anyway, as you can extract a pass file or even share it.
-  - Timestamp-based verification is a tale about compromises. You can reduce allowed timestamp diff between a reader and phone, but this could cause false negatives.
-    On the other hand, making a diff larger or non-existant makes the possible attack easier. There is a big chance that some real certified readers don't verify the timestamp at all to reduce false positives;
-  - Google Smart Tap seems to have better security. It uses a static key for reader authentication, a secure channel is established afterwards using a per-session unique ECDH keys, plus the request is nonced.
-- Due to beforementioned reason we can assume that encryption was also added as a way of preventing the reverse-engineering as an afterthought (which didn't help in the end).
+- Protocol lacks nonces, therefore there is no way for a reader to verify that the response provided was actually generated during this communication session.  
+  An attacker, provided that they have temporary access to victim's device, can farm cryptograms in advance after changing devie time to a particular date. After that, they can use farmed cryptograms at a particular time. Although I would argue that physical access to device is a game over anyway, as you can extract a pass file or even share it, so security might not have been a first priority.
+- Timestamp-based verification is a tale about compromises. You can reduce allowed timestamp diff between a reader and phone, but this could cause false negatives.
+  On the other hand, making a diff larger or non-existant makes the possible attack easier. There is a big chance that some real certified readers don't verify the timestamp at all to reduce false positives;
+- Google Smart Tap seems to have better security. It uses a static key for reader authentication, a secure channel is established afterwards using a per-session unique ECDH keys, plus the request is nonced.
+- Due to beforementioned reasons we can assume that encryption was also added as a way of preventing the reverse-engineering as an afterthought (which didn't help in the end).
 
 
 # References
