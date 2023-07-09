@@ -314,12 +314,18 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
 # References
 
 * Resources that helped with research:
-  - [IOS16 Runtime Headers](https://developer.limneos.net/?ios=16.3);
-  - [Apple Developer Documentation](https://developer.apple.com/documentation/);
-  - [Contactless passes in Apple Pay](https://support.apple.com/en-gb/guide/security/secbd55491ad/web) [(Archive)](https://web.archive.org/web/20230126091244/https://support.apple.com/en-gb/guide/security/secbd55491ad/web);
-  - [EMV tag search](https://emvlab.org/emvtags/);
-  - [Flomio Apple VAS](https://flomio.com/forums/topic/apple-vas/) [(Archive)](https://web.archive.org/web/20230601012002/https://flomio.com/forums/topic/apple-vas/) - VAS available only to licensed partners;
-  - [VTAP Apple VAS readers](https://www.vtapnfc.com/apple-vas-readers/) [(Archive)](https://web.archive.org/web/20230401003220/https://www.vtapnfc.com/apple-vas-readers/) - Use of VAS requires ECP to be implemented in a reader.
+  - Generating Wallet passes:
+    - [PassKit](https://pub1.pskt.io/c/gn1v07) - the easiest way of getting demo passes for both Apple VAS and Google Smart Tap, to get an Apple Wallet pass you have to open this link with an Apple-related (IOS/Mac) user agent;
+    - [SpringCard](https://springpass.springcard.com) - requires email, can be used for extra testing;
+  - General:
+    - [IOS16 Runtime Headers](https://developer.limneos.net/?ios=16.3);
+    - [EMV tag search](https://emvlab.org/emvtags/);
+  - Apple resources:
+    - [Apple Developer Documentation](https://developer.apple.com/documentation/);
+    - [Contactless passes in Apple Pay](https://support.apple.com/en-gb/guide/security/secbd55491ad/web) [(Archive)](https://web.archive.org/web/20230126091244/https://support.apple.com/en-gb/guide/security/secbd55491ad/web);
+  - ECP Requirement info:
+    - [Flomio Apple VAS](https://flomio.com/forums/topic/apple-vas/) [(Archive)](https://web.archive.org/web/20230601012002/https://flomio.com/forums/topic/apple-vas/) - VAS available only to licensed partners;
+    - [VTAP Apple VAS readers](https://www.vtapnfc.com/apple-vas-readers/) [(Archive)](https://web.archive.org/web/20230401003220/https://www.vtapnfc.com/apple-vas-readers/) - Use of VAS requires ECP to be implemented in a reader.
   - Device Documentation:
     - [Springcard - Apple VAS Template](https://docs.springcard.com/books/SpringCore/Smart_Reader_Operation/NFC_Templates/Apple_VAS) [(Archive)](https://web.archive.org/web/20230709162304/https://docs.springcard.com/books/SpringCore/Smart_Reader_Operation/NFC_Templates/Apple_VAS);
     - [Configuring Vendi for Apple VAS](https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Configuring%20Vendi%20for%20AppleVas.pdf?api=v2) [(Archive)](https://web.archive.org/web/20230709161922/https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Configuring%20Vendi%20for%20AppleVas.pdf?api=v2);
