@@ -280,7 +280,9 @@ Decrypting VAS data:
    device_key_id = cryptogram[:4] = c0b77375
    device_public_key_body = cryptogram[4: 32 + 4] = d3f37956d84a538f28ac2a04b38ddc1a67d3647a4dd30abd736ea1cea8038388
    device_encrypted_data = cryptogram[36:] = 692e89db99e4746d872de782395640c536e79a75c47a9343da0af3937f06eeca7a865c4ad05a2c543ad2
-   ** REDACTED ** 
+   device_data = ** REDACTED ** 
+   timestamp = device_data[:4] = 2023-07-09 16:35:58
+   payload = device_data[4:] = 6d1UlFpnOc50iVKRaboDOK
 
 VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.nfcdemo; key_id=c0b77375; timestamp=2023-07-09 16:35:58; value=6d1UlFpnOc50iVKRaboDOK)])
 ```
