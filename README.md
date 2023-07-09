@@ -242,7 +242,7 @@ def decrypt_vas_data(cryptogram: bytearray, pass_identifier: str, keys: Collecti
 - This document is based on reverse-engineering efforts done without any access to original protocol specification. Consider all information provided here as an educated guess that is not officially cofirmed;
 - If you find any mistakes/typos or have extra information to add, feel free to raise an issue or create a pull request;
 - Information provided here is intended for educational and personal use only. I assume no responsibility for you using the document for any other purposes. For use in commercial applications you have to contact Apple through official channels and pass all required certifications.
-- After the creation of this document a more in-depth reverse-engineered description of Apple VAS has been published by @gm3197. I am in no shape or form affiliated with that person. If you are interested, a full implementation made by that person was added into a Proxmark repository.
+- After the creation of this document a more in-depth reverse-engineered description of Apple VAS has been published by @gm3197. I am in no shape or form affiliated with that person. If you are interested, you cann look at their GitHub profile, plus there is a fully complete implementation made by that person was added into a [Proxmark3](https://github.com/RfidResearchGroup/proxmark3) repository.
 
 
 # Personal notes
