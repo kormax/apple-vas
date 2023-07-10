@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.serialization import load_der_public_key
 #
 
 
-ECSDA_PUBLIC_KEY_ASN_HEADER = bytearray.fromhex(
+PUBLIC_KEY_ASN_HEADER = bytearray.fromhex(
    "3039301306072a8648ce3d020106082a8648ce3d030107032200"
 )
 
@@ -47,7 +47,7 @@ def decrypt_vas_data(cryptogram: bytearray, pass_identifier: str, keys: Collecti
     for sign in (0x02, 0x03):
         try:
             device_public_key = load_der_public_key(
-                ECSDA_PUBLIC_KEY_ASN_HEADER + bytearray([sign]) + device_public_key_body
+                PUBLIC_KEY_ASN_HEADER + bytearray([sign]) + device_public_key_body
             )
 
             shared_key = reader_private_key.exchange(ec.ECDH(), device_public_key)

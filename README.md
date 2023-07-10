@@ -225,11 +225,16 @@ Cryptogram Information Data TLV tag contains following concatenated data:
      * Device timestamp [0:4) (4 bytes);
      * Pass data [4:] (n bytes).
 
+# Decryption
 
-Pass public key fingerprint can be calculated by doing a SHA256 over the x component of a public key and taking the first 4 bytes. x is used because for ECDH y value does not matter. If your library requires it, you can provide any sign byte (`02`, `03`) to the EC key.
-fingerprint is used to find the corresponding private key for decryption, as some passes from the same issuer might have a different public key than the others.
+Before you can decrypt the pass data, you have to get the private key that matches the public key of the pass, as it is possible that the keys are rolled over from time to time, or that they are semi-diversified. Finding the private key can be done with pass public key fingerprint data.  
+Pass public key fingerprint can be calculated by doing a SHA256 over the X component of a public key and taking the first 4 bytes. Only X component is used because for ECDH Y value does not matter. If your library requires it, you can prepend any sign byte (`02`, `03`) to the EC public key data.
 
-Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library.  As shared info might be considered private information of a company, I won't share how to compute it, but as of now you can find this information on the web (look into notes, references sections for more info). 
+After finding the matching private key, you have to extract the session key provided by the device, and perform an ECDH exchange, retreiving the common key.
+
+Common key itself is not used as is, instead another key has to be derived from it using the X963KDF via SHA256. One culprit that hindered the reverse-engineering efforts of this protocol was the shared info that was needed in order to properly derive the encryption key. As shared info has static components that might be considered private information of a company, I won't share how to compute it, but great news is that as of now this information was published, and can be found on the internet (look into notes, references sections for more info).  
+
+Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library, correct shared info calculation is omitted on purpose.
 ```
 import hashlib 
 
@@ -238,7 +243,7 @@ from cryptography.hazmat.primitives.kdf.x963kdf import X963KDF
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 
-ECSDA_PUBLIC_KEY_ASN_HEADER = bytearray.fromhex(
+PUBLIC_KEY_ASN_HEADER = bytearray.fromhex(
    "3039301306072a8648ce3d020106082a8648ce3d030107032200"
 )
 
@@ -267,7 +272,7 @@ def decrypt_vas_data(cryptogram: bytearray, pass_identifier: str, keys: Collecti
    for sign in (0x02, 0x03):
       try:
          device_public_key = load_der_public_key(
-               ECSDA_PUBLIC_KEY_ASN_HEADER + bytearray([sign]) + device_public_key_body
+               PUBLIC_KEY_ASN_HEADER + bytearray([sign]) + device_public_key_body
          )
 
          shared_key = reader_private_key.exchange(ec.ECDH(), device_public_key)
@@ -334,7 +339,7 @@ Decrypting VAS data:
    device_key_id = cryptogram[:4] = c0b77375
    device_public_key_body = cryptogram[4: 32 + 4] = d3f37956d84a538f28ac2a04b38ddc1a67d3647a4dd30abd736ea1cea8038388
    device_encrypted_data = cryptogram[36:] = 692e89db99e4746d872de782395640c536e79a75c47a9343da0af3937f06eeca7a865c4ad05a2c543ad2
-   device_data = ** REDACTED ** 
+
    timestamp = device_data[:4] = 2023-07-09 16:35:58
    payload = device_data[4:] = 6d1UlFpnOc50iVKRaboDOK
 
