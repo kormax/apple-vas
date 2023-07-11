@@ -11,7 +11,7 @@ Pass data is transmitted in protected form encrypted using AES-GCM. Shared key i
 
 Depending on opreation mode, one or multiple passes can be read in a single tap.  
 
-For correct operation all readers that implement VAS should also have properly configured [ECP](https://github.com/kormax/apple-enhanced-contactless-polling). Otherwise some UX/UI-related features won't work as expected.
+For correct operation all readers that implement VAS should also have properly configured [ECP](https://github.com/kormax/apple-enhanced-contactless-polling). Otherwise some UX/UI-related features won't work as expected. Following information assumes that it is used.
 
 Version 1 was current at the time of writing.
 
@@ -27,7 +27,7 @@ AID value is a HEX representation of ASCII string "OSE.VAS.01".
 
 This AID is also used by [Google Smart Tap](https://github.com/kormax/google-smart-tap):
 
-The ususal implementation for most readers is to select OSE.VAS.01 in order to detect what wallet provider is available on device (stored in TLV tag 50), if "ApplePay" is the value, then we have a device with Apple Wallet.
+The ususal implementation for most readers is to select OSE.VAS.01 in order to detect what wallet provider is available on device (stored in TLV tag `50`), if "ApplePay" is the value, then we have a device with Apple Wallet.
 
 
 # Modes
@@ -48,7 +48,7 @@ Following modes are available:
    Used when you only need to read a pass. In this mode if a phone is brought into the field before auth it will present the needed pass on the screen for authentication. **This mode allows to read only one pass at a time**. If you preauthenticate a payment card, a needed pass will jump in place of a payment card when you bring the device to the reader.  
    <img src="./assets/VAS.MODE.VASONLY.BEFORE.AUTH.webp" alt="![VAS and payment]" width=200px>
 4. Payment only `03`:  
-   Serves as anti-CATHAY.
+   Forces a payment card to appear on a screen for authentication (like any other regular NFC field), but also serves as anti-CATHAY. 
 
 ## Protocol modes
 
@@ -232,9 +232,9 @@ Pass public key fingerprint can be calculated by doing a SHA256 over the X compo
 
 After finding the matching private key, you have to extract the session key provided by the device, and perform an ECDH exchange, retreiving the common key.
 
-Common key itself is not used as is, instead another key has to be derived from it using the X963KDF via SHA256. One culprit that hindered the reverse-engineering efforts of this protocol was the shared info that was needed in order to properly derive the encryption key. As shared info has static components that might be considered private information of a company, I won't share how to compute it, but great news is that as of now this information was published, and can be found on the internet (look into notes, references sections for more info).  
+Common key itself is not used as is, instead another key has to be derived from it using the X963KDF via SHA256. One culprit that hindered the reverse-engineering efforts of this protocol was the shared info that was needed in order to properly derive the encryption key. As am hesitant to publish the deriviation info, I won't share it. But great news is that as of now this information [has been published](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350), you can look at the document for more info.  
 
-Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library, correct shared info calculation is omitted on purpose.
+Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library, correct shared info calculation is omitted (refer to link for info).
 ```
 import hashlib 
 
