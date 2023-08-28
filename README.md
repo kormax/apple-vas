@@ -11,8 +11,6 @@ Pass data is transmitted in protected form encrypted using AES-GCM. Shared key i
 
 Depending on opreation mode, one or multiple passes can be read in a single tap.  
 
-For correct operation all readers that implement VAS should also have properly configured [ECP](https://github.com/kormax/apple-enhanced-contactless-polling). Otherwise some UX/UI-related features won't work as expected. Following information assumes that it is used.
-
 Version 1 was current at the time of writing.
 
 
@@ -23,11 +21,11 @@ VAS can be selected using following application id (AID):
    ```
    4f53452e5641532e3031
    ```
-AID value is a HEX representation of ASCII string "OSE.VAS.01".  
+AID value is a HEX representation of ASCII string `OSE.VAS.01`.  
 
 This AID is also used by [Google Smart Tap](https://github.com/kormax/google-smart-tap):
 
-The ususal implementation for most readers is to select OSE.VAS.01 in order to detect what wallet provider is available on device (stored in TLV tag `50`), if "ApplePay" is the value, then we have a device with Apple Wallet.
+The ususal implementation for most readers is to select `OSE.VAS.01` in order to detect what wallet provider is available on device (stored in TLV tag `50`), if `ApplePay` is the value, then we have a device with Apple Wallet.
 
 
 # Modes
@@ -59,14 +57,53 @@ VAS also has a protocol MODE flag.
 2. FULL:  
    Value `01`. Can be used for both pass redemption and URL signup advertisment.
 
+
+# ECP
+
+For correct operation all readers that implement VAS have to have properly configured [ECP](https://github.com/kormax/apple-enhanced-contactless-polling).  
+Otherwise some UX/UI-related features:
+- Won't work as expected: 
+  * "Pass will be used" tooltip under a payment card when device is brought to the reader in VAS and/or Payment operation mode.
+- Won't work at all:
+  * Pass suggestions when device is brought to the reader in VAS ONLY operation mode.
+
+VAS ECP frames are also sometimes referred to as VASUP-A, both refer to the same thing.
+
+All known VAS frames use ECP format V1, and they differ in last byte only, depending on operation mode: 
+
+| Name            | Version | TCI      |
+| --------------- | ------- | -------- |
+| VAS or payment  | 01      | 00 00 00 |
+| VAS and payment | 01      | 00 00 01 |
+| VAS only        | 01      | 00 00 02 |
+| Payment only    | 01      | 00 00 03 |
+
+Payment only configuration might seem rudimentary, as phone reacts to any reader as to payment one by displaying a payment card.  
+But it is not the case if a [chinese transit card is added to device](https://github.com/kormax/apple-device-as-access-card), which this configuration helps with.
+
 # Command overview
 
 As of version 1 following commands are available:
 
-| Command name | CLA | INS | P1  | P2   | DATA    | LE  | Notes                       |
-| ------------ | --- | --- | --- | ---- | ------- | --- | --------------------------- |
-| Select VAS   | 00  | A4  | 04  | 00   | VAS AID | 00  |                             |
-| Get data     | 80  | CA  | 01  | MODE | *       | 00  | Data format described below |
+| Command name      | CLA | INS | P1  | P2   | DATA    | LE  | RESPONSE DATA | Notes                       |
+| ----------------- | --- | --- | --- | ---- | ------- | --- | ------------- | --------------------------- |
+| SELECT VAS APPLET | 00  | A4  | 04  | 00   | VAS AID | 00  | BER-TLV       |                             |
+| GET DATA          | 80  | CA  | 01  | MODE | BER-TLV | 00  | BER-TLV       | Data format described below |
+
+Commands are executed as follows:
+1. SELECT VAS APPLET:  
+   Reader transmits universal VAS AID; Device response with wallet implementation name in TLV tag `50`.  
+   If value is `4170706c65506179`, which is a value of `ApplePay` string in ASCII-encoded form, we have a device that supports Apple VAS.  
+   Other than that, device return current implementation version, a nonce (which is unused), and extra information.  
+2. GET DATA:  
+   Reader sends protocol mode flag, selected protocol version, SHA256 of pass identifier, capabilities mask, and optional signup URL and filter values.  
+   Device responds with encrypted pass data or an error code in FULL VAS protocol mode, and a confirmation in URL ONLY protocol mode.  
+   In VAS And/Or Payment operation mode, reader may send this command multiple times during the same session in order to get passes from different providers. 
+   In VAS only operation mode, this command is executed only one time.  
+*  After a reading session has been completed, reader should DESELECT the device and do a TRESET to signify end of the transaction.  
+   It is required because VAS supports operation in combination with payment cards that are implemented using other NFC modes, for instance, Type F (FeliCa).  
+   DESELECT + TRESET in this case tells a device that it can now update NFC controller routing and configuration to match the configuration of a pending payment pass.  
+   Beware that due to that reason in `VAS and/or payment` modes, if you've failed to a read a pass due to connectivity issue, you shouldn't do a DESELECT and TRESET, as after that a device won't route any more requests to VAS until user preemptively ends and re-authenticates the session. 
 
 
 # Command and response data format
@@ -213,9 +250,7 @@ Response data example:
             e9f3d533f506e29b4ed31eaa9cfa
       ```
 
-
-
-<sub>[ and ] depict inclusive array indices, ( and ) depict exclusive indices</sub>
+<sub>Symbols [ and ] depict inclusive array indices, ( and ) depict exclusive indices. Numeration is done simillarly to Python</sub>
 
 
 Cryptogram Information Data TLV tag contains following concatenated data:
@@ -227,133 +262,52 @@ Cryptogram Information Data TLV tag contains following concatenated data:
 
 # Decryption
 
-Before you can decrypt the pass data, you have to get the private key that matches the public key of the pass, as it is possible that the keys are rolled over from time to time, or that they are semi-diversified. Finding the private key can be done with pass public key fingerprint data.  
-Pass public key fingerprint can be calculated by doing a SHA256 over the X component of a public key and taking the first 4 bytes. Only X component is used because for ECDH Y value does not matter. If your library requires it, you can prepend any sign byte (`02`, `03`) to the EC public key data.
+After receiving the response, the next step is to decrypt it.
 
-After finding the matching private key, you have to extract the session key provided by the device, and perform an ECDH exchange, retreiving the common key.
+Due to a nature of Apple VAS protocol, decryption can be done:
+- Online, in real-time directly on the reader or connected device:  
+  * Suits most cases, with the only disadvantage that decryption keys need to be distributed onto many devices.
+- Offline, with cryptogram/transaction data and ephemeral keys uploaded to the remote server/machine containing needed keys:  
+  * Advantage of offline method is that there is no need to distribute the decryption keys, so you keep your data a bit more secure.  
+  * It suits implementations where points are not subtracted but only added (like after a purchase), etc.
 
-Common key itself is not used as is, instead another key has to be derived from it using the X963KDF via SHA256. One culprit that hindered the reverse-engineering efforts of this protocol was the shared info that was needed in order to properly derive the encryption key. As am hesitant to publish the deriviation info, I won't share it. But great news is that as of now this information [has been published](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350), you can look at the document for more info.  
 
-Following python pseudocode describes the decryption proccess, crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library, correct shared info calculation is omitted (refer to link for info).
-```
-import hashlib 
+In both situations, decryption is done in the following steps:
+1. First 4 bytes of cryptogram data are taken, it's the key identifier of the pass public key `key_identifier`.  
+   Key identifier is important, as depending on backend implementation, pass keys may be rolled over over time, or be diversified between pass batches.  
+   Even in single key situations, it can be used in order to verify that you're attempting to decrypt a correct pass and not something else.
+2. Using the key identifier, we find matching pass private key by iterating through a list of private keys (better cache them, example only).
+   1. Derive public key based on private key;
+   2. Get public key bytes of the X component.  
+      Only X component is used because for ECDH Y value does not matter.  
+      If your library requires it, you can prepend any sign byte (`02`, `03`) to the EC public key data if you want to load it into an object representation;
+   3. Calculate key identifier by doing SHA256 over the X component. Take first 4 bytes;
+   4. Compare if instance key identifier matches the pass key identifier. If it's a match, then we have the corresponding private key.
+3. Using the pass private key, do ECDH exchange with device ephemeral key, receiving shared key `shared_key`;
+4. Shared key `shared_key` is used together with shared info `shared_info` in X963KDF algorithm in order to get the derived key `derived_key`;
+5. Derived key `derived_key` is then used via AESGCM in order to decrypt pass data.
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.kdf.x963kdf import X963KDF
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.serialization import load_der_public_key
+Documentation on how to generate shared information and derived keys (steps 4. 5.) is not present in this document.
+For that information, visit [the following gist](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350).  Don't forget to thank the authour. 
 
-PUBLIC_KEY_ASN_HEADER = bytearray.fromhex(
-   "3039301306072a8648ce3d020106082a8648ce3d030107032200"
-)
-
-def generate_shared_info(pass_identifier: str):
-    return bytes([
-        *"ASN 1 RELATIVE-OID".encode("ascii"),
-        *"REDACTED REDACTED REDACTED".encode("ascii"),
-        *hashlib.sha256(pass_identifier.encode("ascii")).digest()
-    ])
-
-def decrypt_vas_data(cryptogram: bytearray, pass_identifier: str, keys: Collection["PrivateKey"]):
-   device_key_id = cryptogram[:4]
-   device_public_key_body = cryptogram[4: 32 + 4]
-   device_encrypted_data = cryptogram[36:]
-
-   for key in keys:
-      reader_public_key = key.public_key()
-      reader_key_id = bytearray(hashlib.sha256(reader_public_key.public_numbers().x.to_bytes(32, "big")).digest()[:4])
-      if reader_key_id == device_key_id:
-         reader_private_key = key
-         break
-   else:
-      raise Exception("No matching private key was found for this pass")
-
-   # Sign does not matter for ECDH
-   for sign in (0x02, 0x03):
-      try:
-         device_public_key = load_der_public_key(
-               PUBLIC_KEY_ASN_HEADER + bytearray([sign]) + device_public_key_body
-         )
-
-         shared_key = reader_private_key.exchange(ec.ECDH(), device_public_key)
-         shared_info = generate_shared_info(pass_identifier)
-         print(f"SHARED INFO {shared_info.hex()} {len(shared_info)}")
-         derived_key = X963KDF(
-               algorithm=hashes.SHA256(),
-               length=32,
-               sharedinfo=shared_info,
-         ).derive(shared_key)
-
-         device_data = AESGCM(derived_key).decrypt(b'\x00' * 16, bytes(device_encrypted_data), b'')
-
-         timestamp = datetime(year=2001, month=1, day=1) + timedelta(seconds=int.from_bytes(device_data[:4], "big"))
-         payload = device_data[4:].decode("utf-8")
-         print(f"{timestamp} {payload}")
-         return timestamp, payload
-      except Exception as e:
-         pass
-   else:
-      raise Exception("Could not decrypt data")
-```
-
-# Communication example
-
-Reading single pass
-
-```
-Select VAS applet:
-    --> ISO7816Command(cla=0x00; ins=0xa4; p1=0x04; p2=0x00; lc=10; data=4f53452e5641532e3031; le=0)
-    <-- ISO7816Response(sw1=0x90; sw2=0x00; data=6f1d50084170706c655061799f210201009f2404e9caede39f23040000003e(31))
-        Data TLV:
-            6f[1d]:
-               50[08]: 
-                  4170706c65506179
-               9f21[02]: 
-                  0100
-               9f24[04]: 
-                  e9caede3
-               9f23[04]: 
-                  0000003e
-
-Get VAS data:
-    --> ISO7816Command(cla=0x80; ins=0xca; p1=0x01; p2=0x01; lc=75; data=9f220201009f252003b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a31469f2604008000029f2b0501000000009f291168747470733a2f2f6170706c652e636f6d; le=0)
-        Data TLV:
-            9f22[02]: 
-               0100
-            9f25[20]: 
-               03b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a3146
-            9f26[04]: 
-               00800002
-            9f2b[05]: 
-               0100000000
-            9f29[11]: 
-               68747470733a2f2f6170706c652e636f6d
-    <-- ISO7816Response(sw1=0x90; sw2=0x00; data=70549f2a009f274ec0b77375d3f37956d84a538f28ac2a04b38ddc1a67d3647a4dd30abd736ea1cea8038388692e89db99e4746d872de782395640c536e79a75c47a9343da0af3937f06eeca7a865c4ad05a2c543ad2(86))
-        Data TLV:
-            70[54]:
-               9f2a[00]
-               9f27[4e]: 
-                  c0b77375d3f37956d84a538f28ac2a04b38ddc1a67d3647a4dd30abd736ea1cea8038388692e89db99e4746d872de782395640c536e79a75c47a9343da0af3937f06eeca7a865c4ad05a2c543ad2
-
-Decrypting VAS data:
-   device_key_id = cryptogram[:4] = c0b77375
-   device_public_key_body = cryptogram[4: 32 + 4] = d3f37956d84a538f28ac2a04b38ddc1a67d3647a4dd30abd736ea1cea8038388
-   device_encrypted_data = cryptogram[36:] = 692e89db99e4746d872de782395640c536e79a75c47a9343da0af3937f06eeca7a865c4ad05a2c543ad2
-
-   timestamp = device_data[:4] = 2023-07-09 16:35:58
-   payload = device_data[4:] = 6d1UlFpnOc50iVKRaboDOK
-
-VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.nfcdemo; key_id=c0b77375; timestamp=2023-07-09 16:35:58; value=6d1UlFpnOc50iVKRaboDOK)])
-```
-
+File located at [examples/implementation/decryption.py](./examples/implementations/decryption.py) contains Python code that implements the decryption proccess.  
+Crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library.  
+Correct shared info calculation is omitted, but can be reconstructed by following the link mentioned in this section before.
 
 # Notes
 
-- This document is based on reverse-engineering efforts done without any access to original protocol specification. Consider all information provided here as an educated guess that is not officially cofirmed;
+- For communication traces and decryption example code, visit the [Examples](./examples/README.md) directory.
 - If you find any mistakes/typos or have extra information to add, feel free to raise an issue or create a pull request;
-- Information provided here is intended for educational and personal use only. I assume no responsibility for you using the document for any other purposes. For use in commercial applications you have to contact Apple through official channels and pass all required certifications.
-- After the creation of this document a more in-depth reverse-engineered description of Apple VAS [has been published](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350) by [@gm3197](https://github.com/gm3197). I am in no shape or form affiliated with that person. If you are interested, you can look at their GitHub profile, plus there is a fully complete implementation made by that person was added into a [Proxmark3](https://github.com/RfidResearchGroup/proxmark3) repository. This repository will still be maintained as some information here is unique, plus updates may be in order if new information is found.
-
+- This document is based on reverse-engineering efforts done without any access to original protocol specification.  
+  Take all information provided here with a grain of salt. Understand that it does not and won't have any official confirmation and may or may not contain mistakes;
+- Information provided in this repository is intended for educational, research, and personal use. Its use in any other way is not encouraged.  
+- **Beware** that Apple VAS, just like any other proprietary technology, might be a subject to legal protections depending on jurisdiction. A mere fact of it being reverse-engineered **does not** always mean that it can be used in a commercial product as-is without causing an infringement.  
+  For use in commercial applications, you should contact Apple through official channels in order to get approval.
+- After initial material for this repository has been added and slowly expanded upon with infrequent updates, a fully complete reverse-engineered description of Apple VAS [has been published](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350) by [@gm3197](https://github.com/gm3197).  
+  I am in no way, shape or form affiliated with that person. All findings described here were made on my own.  
+  Nevertheless, considering the timings, **they were the first one** to publish the **fully reproducible Apple VAS spec**, so **much gratitude** should be dedicated **to them** in this regard.  
+  To support their work, give their repo/profile a visit/bookmark, you'd need to do that anyway in order to get information on shared info generation :).
+- If you are interested in a fully code-complete Apple VAS implementation, you can look at the one made by [@gm3197](https://github.com/gm3197) that was added into a [Proxmark3](https://github.com/RfidResearchGroup/proxmark3) repository. Look for it via `VAS`, `vas` keywords. 
 
 # Personal notes
 
@@ -364,8 +318,8 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
 - Google Smart Tap seems to have better security. It uses a static key for reader authentication, a secure channel is established afterwards using a per-session unique ECDH keys, plus the request is nonced.
 - One could argue that physical access to device is a game over anyway, as you can extract a pass file or even share it, so security might not have been a first priority.
 - Due to beforementioned reasons we can assume that encryption was also added as a way of preventing the reverse-engineering and/or as an afterthought (which didn't help in the end).
-
-
+- Protocol has some loose ends, such as filters, nonces, feature flags. It could be a sign of data yet to uncover, or a memento of long forgotten plans to update the protocol. If anything on that matter comes by, this repository will be updated.
+ 
 # References
 
 * Resources that helped with research:
@@ -385,6 +339,7 @@ VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.
     - [Springcard - Apple VAS Template](https://docs.springcard.com/books/SpringCore/Smart_Reader_Operation/NFC_Templates/Apple_VAS) [(Archive)](https://web.archive.org/web/20230709162304/https://docs.springcard.com/books/SpringCore/Smart_Reader_Operation/NFC_Templates/Apple_VAS);
     - [Configuring Vendi for Apple VAS](https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Configuring%20Vendi%20for%20AppleVas.pdf?api=v2) [(Archive)](https://web.archive.org/web/20230709161922/https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Configuring%20Vendi%20for%20AppleVas.pdf?api=v2);
     - [Apple VAS in ViVOPay Devices](https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Apple%20VAS%20in%20ViVOpay%20Devices%20User%20Guide.pdf?api=v2) [(Archive)](https://web.archive.org/web/20230630105151/https://atlassian.idtechproducts.com/confluence/download/attachments/30479625/Apple%20VAS%20in%20ViVOpay%20Devices%20User%20Guide.pdf?api=v2);
+    - [Socket Mobile](https://www.socketmobile.com/support/data-editing-barcode/enable-disable-data/nfc/apple-value-added-services);
   - Device brochures:  
     - [VTAP-100](https://www.vtapnfc.com/downloads/100/VTAP100-OEM_Datasheet.pdf);
     - [VTAP-50](https://www.vtapnfc.com/downloads/50/VTAP50-OEM_Datasheet.pdf);

@@ -1,0 +1,43 @@
+*** Select VAS applet:
+--> ISO7816Command(cla=0x00; ins=0xa4; p1=0x04; p2=0x00; lc=10; data=4f53452e5641532e3031; le=0)
+<-- ISO7816Response(sw1=0x90; sw2=0x00; data=6f1d50084170706c655061799f210201009f2404e9caede39f23040000003e(31))
+*** Data TLV:
+    6f[1d]:
+      50[08]: 
+        4170706c65506179
+      9f21[02]: 
+        0100
+      9f24[04]: 
+        e9caede3
+      9f23[04]: 
+        0000003e
+
+*** Get VAS data:
+--> ISO7816Command(cla=0x80; ins=0xca; p1=0x01; p2=0x01; lc=75; data=9f220201009f252003b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a31469f2604008000029f2b0501000000009f291168747470733a2f2f6170706c652e636f6d; le=0)
+*** Data TLV:
+    9f22[02]: 
+      0100
+    9f25[20]: 
+      03b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a3146
+    9f26[04]: 
+      00800002
+    9f2b[05]: 
+      0100000000
+    9f29[11]: 
+      68747470733a2f2f6170706c652e636f6d
+<-- ISO7816Response(sw1=0x90; sw2=0x00; data=70549f2a009f274ec0b77375d3f37956d84a538f28ac2a04b38ddc1a67d3647a4dd30abd736ea1cea8038388692e89db99e4746d872de782395640c536e79a75c47a9343da0af3937f06eeca7a865c4ad05a2c543ad2(86))
+*** Data TLV:
+    70[54]:
+      9f2a[00]
+        9f27[4e]: 
+          c0b77375d3f37956d84a538f28ac2a04b38ddc1a67d3647a4dd30abd736ea1cea8038388692e89db99e4746d872de782395640c536e79a75c47a9343da0af3937f06eeca7a865c4ad05a2c543ad2
+
+*** Decrypting VAS data:
+*** device_key_id = cryptogram[:4] = c0b77375
+*** device_public_key_body = cryptogram[4: 32 + 4] = d3f37956d84a538f28ac2a04b38ddc1a67d3647a4dd30abd736ea1cea8038388
+*** device_encrypted_data = cryptogram[36:] = 692e89db99e4746d872de782395640c536e79a75c47a9343da0af3937f06eeca7a865c4ad05a2c543ad2
+
+*** timestamp = device_data[:4] = 2023-07-09 16:35:58
+*** payload = device_data[4:] = 6d1UlFpnOc50iVKRaboDOK
+
+*** VAS result is AppleVasResult(passes=[Pass(identifier=pass.com.passkit.pksamples.nfcdemo; key_id=c0b77375; timestamp=2023-07-09 16:35:58; value=6d1UlFpnOc50iVKRaboDOK)])
