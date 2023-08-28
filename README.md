@@ -276,16 +276,16 @@ In both situations, decryption is done in the following steps:
 1. First 4 bytes of cryptogram data are taken, it's the key identifier of the pass public key `key_identifier`.  
    Key identifier is important, as depending on backend implementation, pass keys may be rolled over over time, or be diversified between pass batches.  
    Even in single key situations, it can be used in order to verify that you're attempting to decrypt a correct pass and not something else.
-2. Using the key identifier, we find matching pass private key by iterating through a list of private keys (better cache them, example only).
+2. Using the key identifier, we find matching pass private key by iterating through a list of private keys (better cache them, example only):
    1. Derive public key based on private key;
-   2. Get public key bytes of the X component.  
-      Only X component is used because for ECDH Y value does not matter.  
-      If your library requires it, you can prepend any sign byte (`02`, `03`) to the EC public key data if you want to load it into an object representation;
+   2. Get public key bytes of the X component. Only X component is needed as for ECDH Y value does not matter.  
    3. Calculate key identifier by doing SHA256 over the X component. Take first 4 bytes;
-   4. Compare if instance key identifier matches the pass key identifier. If it's a match, then we have the corresponding private key.
+   4. Compare if instance key identifier matches the pass key identifier. If it's a match, then we have the corresponding private key;
+   *  If no matching key is found, in Online scheme we bail out, may save data for Offline decryption. In Offline scheme we bail out for good.
 3. Using the pass private key, do ECDH exchange with device ephemeral key, receiving shared key `shared_key`;
 4. Shared key `shared_key` is used together with shared info `shared_info` in X963KDF algorithm in order to get the derived key `derived_key`;
-5. Derived key `derived_key` is then used via AESGCM in order to decrypt pass data.
+5. Derived key `derived_key` is then used via AESGCM in order to decrypt pass data. 
+* If your library requires it, you can prepend any sign byte (`02`, `03`) to the EC public key data if you want to load it into an object representation during one of the steps.
 
 Documentation on how to generate shared information and derived keys (steps 4. 5.) is not present in this document.
 For that information, visit [the following gist](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350).  Don't forget to thank the authour. 
