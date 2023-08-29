@@ -60,9 +60,10 @@ VAS also has a protocol MODE flag.
 
 # ECP
 
-For correct operation all readers that implement VAS have to have properly configured [ECP](https://github.com/kormax/apple-enhanced-contactless-polling).  
-Otherwise some UX/UI-related features:
-- Won't work as expected: 
+For correct operation all readers that implement VAS have to have properly configured [ECP](https://github.com/kormax/apple-enhanced-contactless-polling).
+  
+Otherwise, some UX/UI-related features:  
+- Won't work as expected:  
   * "Pass will be used" tooltip under a payment card when device is brought to the reader in VAS and/or Payment operation mode.
 - Won't work at all:
   * Pass suggestions when device is brought to the reader in VAS ONLY operation mode.
@@ -288,7 +289,7 @@ In both situations, decryption is done in the following steps:
 * If your library requires it, you can prepend any sign byte (`02`, `03`) to the EC public key data if you want to load it into an object representation during one of the steps.
 
 Documentation on how to generate shared information and derived keys (steps 4. 5.) is not present in this document.
-For that information, visit [the following gist](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350).  Don't forget to thank the authour. 
+For that information, visit [the following gist](https://gist.github.com/gm3197/ad0959476346cef69b75ea0523214350).  Don't forget to thank the author. 
 
 File located at [examples/implementation/decryption.py](./examples/implementations/decryption.py) contains Python code that implements the decryption proccess.  
 Crypto methods are provided by [cryptography](https://cryptography.io/en/latest/) library.  
