@@ -160,7 +160,7 @@ Commands are executed as follows:
    | SHA256 of pass id   | `9f25` | `32`     | `03b57cdb3eca0984ba9abdc2fb45d86626d87b39d33c5c6dbbc313a6347a3146` | SHA of pass type identifier, such as `pass.com.passkit.pksamples.nfcdemo`                                                                          |
    | Capabilities mask   | `9f26` | `04`     | `00800002`                                                         | More info below                                                                                                                                    |
    | Merchant signup URL | `9f29` | Variable | `68747470733a2f2f6170706c652e636f6d`                               | URL pointing to a HTTPS signup json signed by pass certificate                                                                                     |
-   | Filter              | `9f2b` | `05`     | `0100000000`                                                       | Meaning unknown, mentioned in public configuration PDFs (look at References section). Values other than provided in example make pass reading fail |
+   | Filter              | `9f28` | `04`     | `01000000`                                                       | Meaning unknown, mentioned in public configuration PDFs (look at References section). Values other than provided in example make pass reading fail |
 
 ### Capabilities mask
 
@@ -216,8 +216,8 @@ Command TLV data example:
          3146
       9f26[04]:
          00800002
-      9f2b[05]:
-         0100000000
+      9f28[04]:
+         01000000
       9f29[11]:               
          68747470733a2f2f6170706c652e636f6d
       ```
